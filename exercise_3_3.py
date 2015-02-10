@@ -23,7 +23,7 @@ def set_parameters():
     ## stimulus parameters
     p['I_amp'] = 10.           ## input current amplitude (uA/cm2)
     p['t_stim_on'] = 5.            ## stimulus-on time (ms)
-    p['t_stim_off'] = 30.           ## stimulus-off time (ms)
+    p['t_stim_off'] = 45.           ## stimulus-off time (ms)
 
     ## neuron parameters
     p['V_rest'] = -65.             ## resting potential (mV)
@@ -191,15 +191,35 @@ def simulate(p):
     I = stimulus(p)
 
     spikes = 0
-    sIndex = -1
+    spiked = False
     N = len(p['time'])
     i = 0
+    interspikeArr = []
+    T1, T2 = 0, 0
     while (i < N-1):
         Vm[i+1], m[i+1], h[i+1] , n[i+1] \
             = update(Vm[i], m[i], h[i], n[i], I[i], p)
+        if Vm[i+1] > 0 :
+            if not spiked: 
+                spikes += 1
+                spiked = True
+                if spikes == 1: continue
+                T2 = i*p['dt']
+                interspikeArr.append(T2 - T1)
+        else :
+            if spiked :
+                T1 = i*p['dt']
+            spiked = False
         i += 1
+
+    # f = float(spikes)/(p['t_stim_off']-p['t_stim_on'])*1000
+    if len(interspikeArr) != 0 : 
+        interspike = sum(interspikeArr)/len(interspikeArr)
+        f = 1/(interspike)*1000
+    else :
+        f = 0
             
-    return Vm, I
+    return Vm, I, f
 
 ##############################################################################################
 ##############################################################################################
@@ -211,14 +231,21 @@ if __name__ == "__main__":
     p = set_parameters()
 
     ## simulate
-    Vm, I = simulate(p)
+    i = 0
+    amps = np.arange(0,20.5,0.1)
+    f = np.zeros(len(amps))
+    while i < len(amps) :
+        p['I_amp'] = amps[i]
+        Vm, I, f[i] = simulate(p)
+        i += 1
+        print 'Only ', len(amps) - i, 'left!'
 
     ## plot results
     plt.figure(1)
     plt.clf()
 
     ### input current
-    sp1 = plt.subplot(211)
+    sp1 = plt.subplot(311)
     plt.plot(p['time'], I, 'k-', lw=3)
     plt.ylabel('input current ($\mu$A/cm$^2$)')
     plt.xlim(p['time'][0], p['time'][-1])
@@ -228,7 +255,7 @@ if __name__ == "__main__":
     plt.setp(plt.gca(), xticklabels=[])
     
     ### membrane potential 
-    sp2 = plt.subplot(212)
+    sp2 = plt.subplot(312)
     plt.plot(p['time'], Vm, 'k-',lw=3)
     plt.ylabel('membrane potential (mV)')
     plt.xlabel('time (ms)')
@@ -236,5 +263,9 @@ if __name__ == "__main__":
     offset = 0.1*np.abs(np.max(Vm)-np.min(Vm))
     plt.ylim(np.min(Vm)-offset, np.max(Vm)+offset)
     sp2.set_position([0.1, 0.1, 0.8, 0.5])
+
+    plt.figure(2)
+    ### frequency
+    plt.plot(amps, f)
 
     plt.show()
