@@ -63,31 +63,31 @@ def return_cell(synaptic_y_pos=900, conductance_type='active', weight=0.001, inp
     cell.simulate(rec_imem=True, rec_vmem=True)
     return cell
 
-def plot_cell(idx, cell):
+def plot_cell(idx, cell, pos):
     cell_plot_idx = 0
+    color = ['g','r','b','c','y'][idx]
     plt.subplots_adjust(hspace=0.5)  # Adjusts the vertical distance between panels.
     plt.subplot(121, aspect='equal', xticks=[], xlabel='x', ylabel='y [$\mu m$]')
     if idx == 0 :
         [plt.plot([cell.xstart[idx], cell.xend[idx]], [cell.ystart[idx], cell.yend[idx]], c='k') for idx in xrange(cell.totnsegs)]
 
     for idx in cell.synidx:
-        plt.plot(cell.xmid[idx], cell.ymid[idx], 'ro')
+        plt.plot(cell.xmid[idx], cell.ymid[idx], 'o', c=color)
     
     plt.subplot(222, title='Membrane potential', xlabel='Time [ms]', ylabel='mV')
-    plt.plot(cell.tvec, cell.vmem[cell_plot_idx, :])
-    plt.subplot(224, title='Membrane potential (normalized)', xlabel='Time [ms]', ylabel='mV')
-    Vm = cell.vmem[cell_plot_idx, :]
-    Vm -= Vm[0]
-    Vm /= abs(Vm.max())
-    plt.plot(cell.tvec, Vm)
+    plt.plot(cell.tvec, cell.vmem[cell_plot_idx, :], c=color)
+
+    cell_plot_idx = cell.get_closest_idx(x=0., y=pos, z=0.)
+    plt.subplot(224, title='Synaptic potential' , xlabel='Time [ms]', ylabel='mV')
+    plt.plot(cell.tvec, cell.vmem[cell_plot_idx, :], c=color)
 
 
 if __name__ == '__main__':
     ypos = np.linspace(0,900,5)
     for idx, pos in enumerate(ypos):
-        cell = return_cell(synaptic_y_pos = pos,conductance_type='passive', \
+        cell = return_cell(synaptic_y_pos = pos,conductance_type='active', \
                 input_spike_train = np.array([10.,50.,90.]))
-        plot_cell(idx, cell)
+        plot_cell(idx, cell, pos)
     plt.show()
 
 
