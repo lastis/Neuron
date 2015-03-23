@@ -2,6 +2,7 @@ from __future__ import division
 from scipy.stats import norm
 from neuron import h, load_mechanisms
 from numpy import trapz
+import matplotlib.pyplot as plt
 cvode = h.CVode()
 cvode.active(1)
 #cvode.maxstep(0.2)
@@ -39,16 +40,17 @@ def test():
 
      ##################################################################   
     # Channel densities
-    gna = 0 # S/cm2
-    gkdr = 0
-    gcat = 0
+    gna  = 0.04 # S/cm2
+    gkdr = 0.04
+    gcat = 0.0001
 
     ###################################################################
     ## INSERT STIMULATION ELECTRODES
-    stim = h.IClamp(.5)
+    stim = h.IClamp(h.soma(0.5))
+    # stim = h.IClamp(h.dend[99](0.5))
     stim.delay = 1000
     stim.dur = 10
-    stim.amp = 0 #nA
+    stim.amp =  0#.25 #nA
 
     ###################################################################
     ## INSERT SYNAPSES    
@@ -63,8 +65,20 @@ def test():
     s.noise = 0    
     
     nc = h.NetCon(s,syn,sec = sec)       
-    nc.weight[0] = 0
+    nc.weight[0] = 0.015
 
+    # syn1 = h.Exp2Syn(h.dend[83](1)) # Sum of exp's
+    # syn1.tau1 = 0.5 # Rise (ms)
+    # syn1.tau2 = 2 # Decay (ms)
+    # syn1.e = 10 # Reversal # pot.
+              
+    # s1 = h.NetStim(0.5)
+    # s1.start = 1100  # start for distal synapses
+    # s1.number = 1
+    # s1.noise = 0    
+    
+    # nc1 = h.NetCon(s1,syn1,sec = sec)       
+    # nc1.weight[0] = 0.05
     #################################################################
     # Split the morphology up in a suitable number of segments
     freq = 50
@@ -77,6 +91,7 @@ def test():
               
     ##################################################################
     # INITIALIZE
+    gcat_func = lambda dist : 0.1054*gcat*(1 + 0.04*dist)
     def initialize():
         global Epas
         h.celsius = celsius
@@ -94,10 +109,13 @@ def test():
             sec.cm = cap
             sec.gnabar_hh2 = 0 
             sec.gkbar_hh2 = 0
+            dist = h.distance(0.5)
+            # sec.gcabar_it2 = gcat_func(dist)
             sec.gcabar_it2 = gcat
         for sec in h.soma:
             sec.gnabar_hh2 = gna 
             sec.gkbar_hh2 = gkdr
+            # sec.gcabar_it2 = 0.1054*gcat
             sec.gcabar_it2 = gcat
                                                                              
         h.finitialize()       
@@ -181,4 +199,4 @@ ax3.legend(loc='best',frameon=False, fontsize=13)
 ax4.legend(loc='best',frameon=False, fontsize=13)
 pylab.setp([a.set_xlabel('') for a in [ax1,ax2,ax3]], visible=False) 
 pylab.setp([a.get_xticklabels() for a in [ax1,ax2,ax3]], visible=False)
-
+pylab.show(fig)
